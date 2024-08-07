@@ -4,6 +4,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from PIL import Image
 import io
+import numpy as np
+import time 
 
 url = "https://www.google.com/fbx?fbx=minesweeper"
 browser = webdriver.Firefox()
@@ -52,13 +54,11 @@ advanced = Board(width, height, 24, 20)
 
 def click_tile(x: int, y: int):
     actions = ActionChains(browser)
-    print(-520/2+24*x, -420/2+24*y)
     actions.move_to_element_with_offset(canvas, -520/2+medium.w*x, -420/2+medium.h*y).click().perform()
     
 
 click_tile(0, 0)
 click_tile(17, 13)
-
 
 unknown = -2
 flag = -1
@@ -78,10 +78,45 @@ colors = {
     '#424242': 7,
   }
 
-relative_positions = [
-      [.6, .4], [.5, .5], [.6, .6], [.5, .58], [.5, .3],
-      [.45, .45], [.4, .6], [.5, .4],
-]
 
-# def get_tile(x: int, y: int) -> int:
-    # px = x * 
+def extract_squares(image_np, square_width, square_height):
+    height, width, _ = image_np.shape
+    squares = []
+    
+    for y in range(0, height, square_height):
+        for x in range(0, width, square_width):
+            square = image_np[y:y+square_height, x:x+square_width]
+            squares.append((x, y, square))
+    
+    return squares
+
+def rgb_to_hex(rgb):
+    return '#{:02x}{:02x}{:02x}'.format(*rgb)
+
+def get_tile_value(square, colors):
+    mean_color = cv.mean(square)[:3]
+    hex_color = rgb_to_hex((int(mean_color[0]), int(mean_color[1]), int(mean_color[2])))
+    # print(hex_color)
+    return hex_color
+
+
+
+def get_tile(pixels, x: int, y: int) -> int:
+    px = medium.w * (x)
+    py = medium.h * (y)
+    print(px, py)
+    r, g, b, _ = pixels[px, py]
+    print(f'Pixel ({x}, {y}): {r}, {g}, {b}')
+
+time.sleep(1)
+screenshot = canvas.screenshot_as_png
+image = Image.open(io.BytesIO(screenshot))
+
+
+# get_tile(pixels, 0, 0)
+image_np = np.array(image)
+squares = extract_squares(image_np, medium.w, medium.h)
+
+for x, y, square in squares:
+    value = get_tile_value(square, colors)
+    print(f"Square ({x}, {y}) value: {value}")
